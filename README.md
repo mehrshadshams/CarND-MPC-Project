@@ -3,6 +3,57 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
+## Results
+
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=4eTXRgZOFY0
+" target="_blank"><img src="https://img.youtube.com/vi/4eTXRgZOFY0/0.jpg" 
+alt="MPC results" width="240" height="180" border="10" /></a>
+
+## The Model
+The model used is a Kinematic model. This models ignores the interactions between the tires and the road. The model equations are as follow:
+
+```
+x[t] = x[t-1] + v[t-1] * cos(psi[t-1]) * dt
+y[t] = y[t-1] + v[t-1] * sin(psi[t-1]) * dt
+psi[t] = psi[t-1] + v[t-1] / Lf * delta[t-1] * dt
+v[t] = v[t-1] + a[t-1] * dt
+cte[t] = f(x[t-1]) - y[t-1] + v[t-1] * sin(epsi[t-1]) * dt
+epsi[t] = psi[t] - psides[t-1] + v[t-1] * delta[t-1] / Lf * dt
+```
+
+Where:
+
+- x, y : Car's position.
+- psi : Car's heading direction.
+- v : Car's velocity.
+- cte : Cross-track error.
+- sepsi : Steering angle error.
+
+These are the states of the vehicle. We have Lf (the distance between the center of mass of the car and the front wheels) as a constant. We also have the control inputs which are defined as follows:
+
+- a : Car's acceleration (throttle).
+- delta : Steering angle.
+
+The objective is to find the acceleration (a) and the steering angle(delta). We will try to minimize an objective function that is the combination of different factors:
+
+- Sum of squared difference of (scaled) cte and epsi.
+- Sum of squared difference between speed and reference speed.
+- Sum of squared of actuator values to penalize lots of actuator's actions.
+- Sum of squared difference between two consecutive actuator values to penalize sharp changes.
+
+### Timestep Length and Elapsed Duration (N & dt)
+The number of points(N) and the time interval(dt) define the prediction horizon. The number of points impacts the controller performance as well. If we define too many points the controller starts to slow down. Since we have to minimize the objective function and this is used by numerical methods, if there are too many parameters involved it's possible that the optimizer is not able to find best values, so our predicted path sometimes can't follow the waypoints closely. I tweaked N & dt but finally used the default values. (N=10, dt=0.1)
+
+### Polynomial Fitting and MPC Preprocessing
+The simulator passes the waypoints to the controller. These values are in global coordinates. We need to convert them to vehicle's local coordinate. This is done, as explained in the FAQ video in ./src/main.cpp from line 121 to line 136.
+
+Once we transform waypoints, we can fit a 3rd degree polynomial on the points. (main.cpp line 139) We use the polynomial coeeficients to calculate CTE and PSI-ERROR later (main.cpp lines 142-159)
+
+### Latency
+To account for latency we compute the state after the delay (100ms) by putting original state into the equations above. Now we can pass the state after the latency to our solver. (lines 162-167)
+
+
+
 ## Dependencies
 
 * cmake >= 3.5
